@@ -3,41 +3,70 @@ import argparse
 import configparser
 import logging
 import os.path
-import azure.functions
 from azure.storage.blob import BlobServiceClient, ContainerClient, BlobClient
 
 
+
+
+logging.basicConfig(
+    filename="log_main.log",
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s - %(message)s',
+    datefmt='%d/%m/%Y %H:%M:%S',)
+
+
+
+
+"""
+Liste les blobs du contenuer indiqué.
+"""
 def listb(args, containerclient):
     blob_list=containerclient.list_blobs()
     for blob in blob_list:
         print(blob.name)
 
-
+"""
+Charge le blob dans le contenur du client.
+"""
 def upload(cible, blobclient):
     with open(cible, "rb") as f:
         blobclient.upload_blob(f)
 
-
+""" 
+Téléchager le blob et le place dans le dossier créé
+"""
 def download(filename, dl_folder, blobclient):
     with open(os.path.join(dl_folder,filename), "wb") as my_blob:
         blob_data=blobclient.download_blob()
         blob_data.readinto(my_blob)
 
-
+'''
+Permet la connexion au client  pour configurer les propriétés du compte
+'''
 def main(args,config):
+    logging.info("lancement la function main")
     blobclient=BlobServiceClient(
         f"https://{config['storage']['account']}.blob.core.windows.net",
         config["storage"]["key"],
         logging_enable=False)
+    logging.debug("connection u compte storage")
+
     containerclient=blobclient.get_container_client(config["storage"]["container"])
+    logging.debug("connection au container")
     if args.action=="list":
+        logging.debug('lancement la function list')
         return listb(args, containerclient)
     else:
         if args.action=="upload":
+            
             blobclient=containerclient.get_blob_client(os.path.basename(args.cible))
+            logging.debug('lancement la function upload')
+            loggi.warning('uploading')
             return upload(args.cible, blobclient)
         elif args.action=="download":
+            logging.debug('lancement la function upload')
             blobclient=containerclient.get_blob_client(os.path.basename(args.remote))
+            loggi.warning('dowloading')
             return download(args.remote, config["general"]["restoredir"], blobclient)
     
 
